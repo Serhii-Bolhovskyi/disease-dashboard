@@ -1,18 +1,24 @@
-import { useState } from 'react'
-import data from './data/covid19All.json'
-import { CARDS } from './data/cards.jsx'
-import { COUNTRIES } from './data/countries.js'
-import { formatCompact, formatFull, formatPerMillion } from './utils/formatNumber.js'
-import KpiCard from './components/KpiCard.jsx'
-import Toggle from './components/Toggle.jsx'
-import Counter from './components/Counter.jsx'
-import CountryList from './components/CountryList.jsx'
+import { useMemo, useState } from 'react'
+import { CARDS } from './data/cards'
+import { useCountries } from './hooks/useCountries'
+import { useSort } from './hooks/useSort'
+import { aggregateStats } from './utils/aggregateStats'
+import { formatCompact, formatFull, formatPerMillion } from './utils/formatNumber'
+import AsyncContent from './components/AsyncContent'
+import KpiCard from './components/KpiCard'
+import Toggle from './components/Toggle'
+import Counter from './components/Counter'
+import CountriesTable from './components/CountriesTable'
+import CountryList from './components/CountryList'
 
 function App() {
-    // Стан режиму живе тут, бо від нього залежать і кнопка, і картки
-    const [isPerMillion, setIsPerMillion] = useState(false)
+    const { countries, isLoading, error } = useCountries()
+    const { sortedRows, sort, toggleSort } = useSort(countries, 'cases', 'desc')
 
+    const [isPerMillion, setIsPerMillion] = useState(false)
     const toggleMode = () => setIsPerMillion((prev) => !prev)
+
+    const stats = useMemo(() => aggregateStats(countries), [countries])
 
     return (
         <div className="m-2 mt-4">
@@ -21,33 +27,40 @@ function App() {
                 <Toggle
                     isOn={isPerMillion}
                     onToggle={toggleMode}
-                    labelOn="Show Stats Per Million"
-                    labelOff="Show Absolute"
+                    labelOn="Show Absolute"
+                    labelOff="Show Stats Per Million"
                 />
             </div>
 
-            <div className="flex flex-wrap gap-4">
-                {CARDS.map((card) => {
-                    const showPerMillion = isPerMillion && card.perMillionKey !== undefined
-                    const raw = data[showPerMillion ? card.perMillionKey : card.absoluteKey]
+            <AsyncContent isLoading={isLoading} error={error} isEmpty={countries.length === 0}>
+                <div className="flex flex-wrap gap-4">
+                    {CARDS.map((card) => {
+                        const showPerMillion = isPerMillion && card.perMillionKey !== undefined
+                        const raw = stats[showPerMillion ? card.perMillionKey : card.absoluteKey]
 
-                    return (
-                        <KpiCard
-                            key={card.id}
-                            title={card.title}
-                            icon={card.icon}
-                            value={showPerMillion ? formatPerMillion(raw) : formatCompact(raw)}
-                            fullValue={showPerMillion ? undefined : formatFull(raw)}
-                            change={!showPerMillion && card.todayKey ? data[card.todayKey] : undefined}
-                        />
-                    )
-                })}
-            </div>
+                        return (
+                            <KpiCard
+                                key={card.id}
+                                title={card.title}
+                                icon={card.icon}
+                                value={showPerMillion ? formatPerMillion(raw) : formatCompact(raw)}
+                                fullValue={showPerMillion ? undefined : formatFull(raw)}
+                                change={!showPerMillion && card.todayKey ? stats[card.todayKey] : undefined}
+                            />
+                        )
+                    })}
+                </div>
 
-            <div className="mt-6 flex flex-wrap items-start gap-4">
-                <Counter label="Observation period (days)" initialValue={7} step={1} min={1} max={30} />
-                <CountryList countries={COUNTRIES} />
-            </div>
+                <section className="mt-6">
+                    <h2 className="mb-2 text-lg font-medium">Countries</h2>
+                    <CountriesTable rows={sortedRows} sort={sort} onSort={toggleSort} />
+                </section>
+
+                <div className="mt-6 flex flex-wrap items-start gap-4">
+                    <Counter label="Observation period (days)" initialValue={7} step={1} min={1} max={30} />
+                    <CountryList countries={countries} />
+                </div>
+            </AsyncContent>
         </div>
     )
 }

@@ -1,4 +1,4 @@
-import { formatCompact } from '../utils/formatNumber.js'
+import { formatCompact } from '../utils/formatNumber'
 
 function KpiCard({ title, value, fullValue, change, icon }) {
     return (

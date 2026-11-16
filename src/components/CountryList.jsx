@@ -1,13 +1,12 @@
 import { useState } from 'react'
-import { ALL_CONTINENTS } from '../data/countries.js'
-import { formatCompact } from '../utils/formatNumber.js'
+import { formatCompact } from '../utils/formatNumber'
 
-// Дані приходять пропсом, стан фільтра живе тут, бо більше нікому не потрібен.
+const ALL_CONTINENTS = 'All'
+
 function CountryList({ countries }) {
     const [continent, setContinent] = useState(ALL_CONTINENTS)
 
-    // Категорії виводимо з даних, а не пишемо вручну
-    const continents = [ALL_CONTINENTS, ...new Set(countries.map((c) => c.continent))]
+    const continents = [ALL_CONTINENTS, ...new Set(countries.map((c) => c.continent).filter(Boolean))]
 
     const visibleCountries =
         continent === ALL_CONTINENTS ? countries : countries.filter((c) => c.continent === continent)
@@ -30,9 +29,9 @@ function CountryList({ countries }) {
                 </select>
             </div>
 
-            <ul className="mt-3 divide-y divide-gray-100">
+            <ul className="mt-3 max-h-[320px] divide-y divide-gray-100 overflow-y-auto">
                 {visibleCountries.map((country) => (
-                    <li key={country.id} className="flex items-center justify-between py-2 text-sm">
+                    <li key={country.country} className="flex items-center justify-between py-2 text-sm">
                         <span className="text-gray-900">{country.country}</span>
                         <span className="tabular-nums text-gray-500">{formatCompact(country.cases)}</span>
                     </li>
